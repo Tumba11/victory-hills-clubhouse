@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Victory Hills Clubhouse</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:#f1f7f1;color:#1b2e1b;font-size:18px;padding-bottom:90px}
+header{background:#1e5631;color:#fff;padding:16px;text-align:center}header h1{margin:0;font-size:22px}header p{margin:4px 0 0;font-size:14px;opacity:.85}
+main{padding:14px;max-width:640px;margin:auto}.card{background:#fff;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 1px 4px #0002}
+h2{color:#1e5631;margin:0 0 10px;font-size:20px}label{display:block;font-weight:600;margin:10px 0 4px}
+input,textarea,select{width:100%;font-size:17px;padding:10px;border:2px solid #a4c3a2;border-radius:10px}textarea{min-height:90px}
+button,.btn{display:block;width:100%;font-size:18px;padding:14px;margin-top:10px;border:0;border-radius:12px;background:#2e7d32;color:#fff;font-weight:700;text-align:center;text-decoration:none;cursor:pointer}
+button.alt{background:#a4c3a2;color:#1b2e1b}.out{white-space:pre-wrap;background:#eef6ee;border-radius:10px;padding:10px;font-size:16px}
+.tag{display:inline-block;background:#ffe9a8;color:#5a4500;font-size:12px;padding:2px 8px;border-radius:8px;font-weight:700}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#1e5631}nav button{margin:0;border-radius:0;background:none;font-size:15px;padding:12px 2px}
+nav button.on{background:#4c9a2a}.tab{display:none}.tab.on{display:block}table{width:100%;border-collapse:collapse;font-size:13px}td,th{border:1px solid #cfe0cf;padding:3px}td input{border:0;padding:3px;font-size:13px}
+li{margin:6px 0}.x{background:none;color:#b00;width:auto;display:inline;padding:0 6px;margin:0;font-size:16px}img.prev{max-width:100%;border-radius:10px;margin-top:8px}
+</style></head><body>
+<header><h1>⛳ Victory Hills Clubhouse</h1><p>Elizabeth Twp, PA · Nothing here posts or sends by itself</p></header>
+<main>
+<section id="post" class="tab on"><div class="card"><h2>Post</h2>
+<label>What's the news?</label><textarea id="news" placeholder="e.g. Greens are rolling fast this weekend"></textarea>
+<label>Type</label><select id="ptype"><option>Course update</option><option>Special / deal</option><option>Event / outing</option><option>Help wanted</option></select>
+<label>Photo (optional)</label><input type="file" id="photo" accept="image/*"><img id="prev" class="prev" hidden>
+<button onclick="mkPost()">Make my posts</button></div><div id="posts"></div></section>
+
+<section id="hire" class="tab"><div class="card"><h2>Hire <small style="font-size:13px">(adults &amp; retirees)</small></h2>
+<label>Job</label><select id="job"><option>Starter</option><option>Ranger</option><option>Cart Attendant</option><option>Grounds Crew</option><option>Bar / Kitchen</option></select>
+<label>Days / hours</label><input id="hrs" placeholder="e.g. 2 mornings a week, 6–11am">
+<label>Pay (leave blank to skip)</label><input id="pay" placeholder="e.g. $15/hr">
+<label><input type="checkbox" id="golf" checked style="width:auto"> Include free golf perk</label>
+<button onclick="mkJob()">Make job post</button><div id="jobout"></div></div>
+<div class="card"><h2>Applicants</h2><input id="an" placeholder="Name"><input id="ap" placeholder="Phone / email" style="margin-top:6px"><input id="aj" placeholder="Job wanted" style="margin-top:6px">
+<button onclick="addApp()">Add applicant</button><ul id="apps"></ul></div>
+<div class="card"><h2>This week's shifts</h2><div id="grid"></div><button class="alt" onclick="clearGrid()">Clear week</button></div></section>
+
+<section id="tee" class="tab"><div class="card"><h2>Tee Times</h2>
+<p>Is online booking working? Tap to open the booking page and check.</p>
+<a class="btn" href="https://victoryhillsgc.teesnap.net/" target="_blank" onclick="setTimeout(askBook,800)">Open TeeSnap booking</a>
+<div id="bstat" class="out" style="margin-top:10px"></div>
+<button class="alt" onclick="tryCheck()">Quick auto-check</button></div>
+<div class="card"><h2>Slow slot deal</h2><label>Day / time</label><input id="slot" placeholder="e.g. Tuesday after 1pm">
+<label>Deal</label><input id="deal" placeholder="e.g. 18 with cart for $X">
+<button onclick="mkDeal()">Make text &amp; email</button><div id="dealout"></div></div>
+<div class="card"><h2>Regulars</h2><input id="rn" placeholder="Name"><input id="rc" placeholder="Phone / email" style="margin-top:6px">
+<button onclick="addReg()">Add regular</button><ul id="regs"></ul><button class="alt" onclick="cp(S.regs.map(r=>r.c).join(', '))">Copy all contacts</button></div></section>
+
+<section id="comp" class="tab"><div class="card"><h2>Competitors</h2><div id="cw"></div></div>
+<div class="card"><h2>Counter-campaign builder <span class="tag">Suggestion</span></h2>
+<label>Competitor</label><select id="cn"><option>Butler's Golf Course</option><option>3 Lakes Golf Course</option><option>Cedarbrook Golf Course</option><option>Rolling Green Golf Club</option></select>
+<label>What did they launch?</label><input id="cwhat" placeholder="e.g. new weekday league">
+<button onclick="mkCounter()">Suggest a response</button><div id="cout"></div></div></section>
+</main>
+<nav><button class="on" data-t="post">📣<br>Post</button><button data-t="hire">🧢<br>Hire</button><button data-t="tee">⛳<br>Tee Times</button><button data-t="comp">👀<br>Competitors</button></nav>
+<script>
+const COMPETITOR_WATCH = "";
+const K='vhc1',S=Object.assign({apps:[],regs:[],grid:{}},JSON.parse(localStorage.getItem(K)||'{}'));const save=()=>localStorage.setItem(K,JSON.stringify(S));
+const $=i=>document.getElementById(i),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.tab').forEach(e=>e.classList.remove('on'));b.classList.add('on');$(b.dataset.t).classList.add('on');scrollTo(0,0)});
+function cp(t){navigator.clipboard?navigator.clipboard.writeText(t).then(()=>alert('Copied!')):prompt('Copy this:',t)}
+let blocks={};function box(id,title,text){blocks[id]=text;return `<div class="card"><h2>${title}</h2><div class="out">${esc(text)}</div><button onclick="cp(blocks['${id}'])">Copy</button></div>`}
+$('photo').onchange=e=>{const f=e.target.files[0];if(f){$('prev').src=URL.createObjectURL(f);$('prev').hidden=false}};
+const SITE='golfvictoryhills.com',BOOK='victoryhillsgc.teesnap.net';
+function mkPost(){const n=$('news').value.trim();if(!n)return alert('Type the news first');const t=$('ptype').value;
+const cta={'Course update':'Come see for yourself — book your tee time','Special / deal':'Grab it while it lasts — book now','Event / outing':'Call the pro shop or message us to sign up','Help wanted':'Stop by the clubhouse or message us to apply'}[t];
+const ph=$('prev').hidden?'':'\n(Attach your photo when you post.)';
+$('posts').innerHTML=box('fb','Facebook post',`⛳ ${n}\n\n${cta}: ${BOOK}\n\n#VictoryHillsGolf #PittsburghGolf #ElizabethTwp${ph}`)
++box('gb','Google Business post',`${n} ${cta}. Book online at ${BOOK}.${ph}`)
++box('em','Short email',`Subject: ${t==='Special / deal'?'A deal for you at Victory Hills':'News from Victory Hills'}\n\nHi there,\n\n${n}\n\n${cta}: ${BOOK}\n\nSee you on the course,\nVictory Hills Golf Course\n${SITE}`)
++'<p style="font-size:14px">Drafts only. Copy and post them yourself.</p>'}
+const DUT={'Starter':'Greet golfers, check them in, and keep groups going off on time.','Ranger':'Ride the course, keep pace of play moving, and help golfers out.','Cart Attendant':'Stage, clean, and charge carts, and help golfers load up.','Grounds Crew':'Mow, rake bunkers, move cups, and help keep the course in shape.','Bar / Kitchen':'Serve drinks and food at the clubhouse and keep things tidy.'};
+function mkJob(){const j=$('job').value,h=$('hrs').value.trim(),p=$('pay').value.trim(),g=$('golf').checked;
+const t=`NOW HIRING: ${j} at Victory Hills Golf Course (Elizabeth Twp)\n\n${DUT[j]}\n${h?'\nSchedule: '+h:'\nFlexible part-time hours.'}${p?'\nPay: '+p:''}${g?'\nPerk: FREE GOLF for staff!':''}\n\nGreat fit for retirees and adults who love the game. Must be 18+.\nStop by the clubhouse or message us to apply.\n${SITE}`;
+$('jobout').innerHTML=box('job','Job post',t)}
+function addApp(){const n=$('an').value.trim();if(!n)return;S.apps.push({n,c:$('ap').value.trim(),j:$('aj').value.trim()});save();['an','ap','aj'].forEach(i=>$(i).value='');drawApps()}
+function drawApps(){$('apps').innerHTML=S.apps.map((a,i)=>`<li><b>${esc(a.n)}</b> ${esc(a.c)} ${a.j?'· '+esc(a.j):''}<button class="x" onclick="S.apps.splice(${i},1);save();drawApps()">✕</button></li>`).join('')||'<li>No applicants yet.</li>'}
+const D=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],R=['Starter','Ranger','Carts','Grounds','Bar'];
+function drawGrid(){$('grid').innerHTML='<table><tr><th></th>'+D.map(d=>`<th>${d}</th>`).join('')+'</tr>'+R.map(r=>'<tr><th>'+r+'</th>'+D.map(d=>`<td><input value="${esc(S.grid[r+d]||'')}" onchange="S.grid['${r+d}']=this.value;save()"></td>`).join('')+'</tr>').join('')+'</table><p style="font-size:13px">Type a name in each box. Saves automatically.</p>'}
+function clearGrid(){if(confirm('Clear the whole week?')){S.grid={};save();drawGrid()}}
+function askBook(){$('bstat').innerHTML='Did booking load? <button onclick="mark(1)">✅ Yes, working</button><button class="alt" onclick="mark(0)">❌ No, it\'s down</button>'}
+function mark(ok){S.book={ok,at:new Date().toLocaleString()};save();showBook()}
+function showBook(){$('bstat').textContent=S.book?`Last check: ${S.book.ok?'✅ Working':'❌ Down — call TeeSnap support'} (${S.book.at})`:'Not checked yet.'}
+function tryCheck(){$('bstat').textContent='Checking…';fetch('https://'+BOOK,{mode:'no-cors'}).then(()=>{$('bstat').textContent='The site answered. Open it to make sure tee times actually show (it can say "maintenance").'}).catch(()=>{$('bstat').textContent='❌ Could not reach the booking site. Open it to double-check.'})}
+function mkDeal(){const s=$('slot').value.trim(),d=$('deal').value.trim();if(!s||!d)return alert('Fill in the time and the deal');
+$('dealout').innerHTML=box('tx','Text message',`Victory Hills: ${s} is wide open! ${d}. Book: ${BOOK} Reply STOP to opt out.`)+box('de','Email',`Subject: Open tee times ${s}\n\nHi,\n\nWe've got room ${s}. ${d}.\n\nBook online: ${BOOK}\n\nSee you out there,\nVictory Hills Golf Course`)}
+function addReg(){const n=$('rn').value.trim();if(!n)return;S.regs.push({n,c:$('rc').value.trim()});save();$('rn').value=$('rc').value='';drawRegs()}
+function drawRegs(){$('regs').innerHTML=S.regs.map((r,i)=>`<li><b>${esc(r.n)}</b> ${esc(r.c)}<button class="x" onclick="S.regs.splice(${i},1);save();drawRegs()">✕</button></li>`).join('')||'<li>No regulars yet.</li>'}
+function mkCounter(){const c=$('cn').value,w=$('cwhat').value.trim()||'a new promotion';
+$('cout').innerHTML=box('ct','Counter-campaign (suggestion)',`SUGGESTION — not data. Response to ${c}: ${w}\n\n• Lead with what we do well: fast greens and friendly staff.\n• Run a matching offer on our slowest day (you pick the price).\n• Post it on Facebook + Google this week (use the Post tab).\n• Text regulars first so they hear it before anyone else (Tee Times tab).\n• Check results next Monday: did bookings on that day go up?`)}
+$('cw').innerHTML=COMPETITOR_WATCH?'<span class="tag">Real data — from the weekly check</span><div class="out" style="margin-top:8px">'+esc(COMPETITOR_WATCH)+'</div>':'<p>Nothing yet. The weekly check runs every <b>Monday morning</b> and watches Butler\'s, 3 Lakes, Cedarbrook and Rolling Green. New findings will show up here.</p>';
+drawApps();drawGrid();drawRegs();showBook();
+</script></body></html>
